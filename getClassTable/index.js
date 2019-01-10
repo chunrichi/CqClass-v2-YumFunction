@@ -38,11 +38,27 @@ exports.main = async(event, context) => {
     formData: {
       pw: '0005f2d9c91740c4af7114db2346004c'
     }
-  }, function (error, response, body) {
+  }, function(error, response, body) {
     // 登录成功返回
     userMessage = body;
     // userMessage = JSON.parse(body)
     console.log('body', body)
+  })
+
+  await request({
+    url: api_url + '/wechart/CqClassBox/login',
+    method: 'POST',
+    formData: {
+      username: '201503306',
+      password: '201503306'
+    }
+  }, function(error, response, body) {
+    console.log('\n\n\n', body)
+    // var info = JSON.parse(body)
+    var info = ''
+    info = body
+    console.log('\ninfo', info)
+    userMessage = info
   })
 
   return {

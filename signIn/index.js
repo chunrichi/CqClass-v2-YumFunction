@@ -2,11 +2,12 @@
 const cloud = require('wx-server-sdk')
 var rp = require('request-promise');
 
-// 开启 request 的 cookies记录
-// var request = request.defaults({jar: true})
-var j = request.jar()
-var request = request.defaults({
-  jar: j
+// 开启 request-promise 的 cookies记录
+const api_url = 'http://39.107.243.115';
+var cookiejar = rp.jar();
+// cookiejar.setCookie(cookie, api_url); //请求api_url的所有cookies
+rp = rp.defaults({
+  jar: cookiejar
 })
 
 cloud.init()
@@ -42,29 +43,36 @@ exports.main = async(event, context) => {
   // 没有该用户 则直接请求 API
   if (!ifHavaTheUser) {
     // 登录 服务器
-    const api_url = 'http://39.107.243.115';
-    request({
-      url: api_url + '/wc/CqClassBox/lei',
+    await rp({
+      uri: api_url + '/wc/CqClassBox/lei',
       method: 'POST',
       formData: {
         pw: '0005f2d9c91740c4af7114db2346004c'
-      }
+      },
+      jar: cookiejar
     })
+
     // 请求 爬虫
-    request({
+    await rp({
       url: api_url + '/wechart/CqClassBox/login',
       method: 'POST',
       formData: {
         username: username,
         password: username
-      }
-    }, function(error, response, body) {
+      },
+      jar: cookiejar
+    }).then(body => {
       console.log('\n\n\nbody', body)
       userMessage = JSON.parse(body)
+    }).catch(error => {
+      userMessage.messageStatus = false
+      userMessage.errorMessage = 'request api error'
     })
+
     // 如果获取成功
     if (userMessage.messageStatus) {
       // 存储信息
+      // 将个人信息存储进 kb_users 中
       await db.collection('kb_users').add({
         // data 字段表示需新增的 JSON 数据
         data: {
@@ -76,6 +84,7 @@ exports.main = async(event, context) => {
           studentName: userMessage.studentMessage.studentName,
         }
       })
+      // 将课表信息添加进 kb_classtables 中
       await db.collection('kb_classtables').add({
         data: {
           uid: username,
